@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -13,6 +14,7 @@ headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537
 #headers={'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'}
 
 res = requests.get(url, headers=headers)
+
 soup = BeautifulSoup(res.text, "html.parser")
 
 elems = soup.find_all('script')
@@ -27,6 +29,17 @@ for i in elems:
         if 0 == len(hit):
             break
         path = hit[0]
+
+if 0 == len(path):
+    elems = soup.find_all('link')
+
+    for i in elems:
+        data = str(i)
+        if target in data:
+            hit = re.findall(url+r'(.+?)'+target,data)
+            if 0 == len(hit):
+                break
+            path = hit[0]
 
 target = 'wp-content/plugins/'
 plugin_list = []
@@ -54,16 +67,19 @@ for i in elems:
 
 plugin_list = set(plugin_list)
 
-
 print("*** Plugin List ***")
 for plugin in plugin_list:
     print(plugin," ",end="")
     res = requests.get(url+path+target+plugin+'/readme.txt')
-    if 200 != res.status_code:
-        print("?")
-    if 'Stable tag:' in res.text:
-        idx = res.text.find('Stable tag:')
-        data = res.text[idx+11:idx+18]
-        print(data.replace('\n',''))
+    if 200 == res.status_code:
+        if 'Stable tag:' in res.text:
+            idx = res.text.find('Stable tag:')
+            data = res.text[idx+11:idx+18]
+            print(data.replace('\n',''))
+        else:
+            print("?")
     else:
         print("?")
+
+if 0 == len(plugin_list):
+    print("No Plugin or example.com -> www.example.com")
